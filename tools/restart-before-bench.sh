@@ -9,6 +9,7 @@ sudo truncate -s 0 -c /var/log/mysql/error.log
 
 # cd ~/webapp/go
 # make
+docker compose -f ~/webapp/docker-compose-go.yml build
 sudo systemctl restart isuports.service
 
 sudo systemctl restart mysql
