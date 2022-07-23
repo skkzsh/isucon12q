@@ -574,24 +574,56 @@ type VisitHistorySummaryRow struct {
 	MinCreatedAt int64  `db:"min_created_at"`
 }
 
+type BetterVisitHistorySummaryRow struct {
+	PlayerID      string `db:"player_id"`
+	CompetitionID string `db:"competition_id"`
+	MinCreatedAt  int64  `db:"min_created_at"`
+}
+
+// ランキングにアクセスした参加者のIDを取得する
+func getBetterVisitHistorySummaryRow(ctx context.Context, tenantID int64) (map[string][]VisitHistorySummaryRow, error) {
+	bvhs := []BetterVisitHistorySummaryRow{}
+	if err := adminDB.SelectContext(
+		ctx,
+		&bvhs,
+		"SELECT player_id, competition_id, MIN(created_at) AS min_created_at FROM visit_history WHERE tenant_id = ? GROUP BY player_id, competition_id", // FIXME: slow
+		tenantID,
+	); err != nil && err != sql.ErrNoRows {
+		return nil, fmt.Errorf("error Select visit_history: tenantID=%d, %w", tenantID, err)
+	}
+	vhsMap := make(map[string][]VisitHistorySummaryRow)
+	for _, v := range bvhs {
+		vhsMap[v.CompetitionID] = append(vhsMap[v.CompetitionID], VisitHistorySummaryRow{
+			PlayerID:     v.PlayerID,
+			MinCreatedAt: v.MinCreatedAt,
+		})
+	}
+
+	return vhsMap, nil
+}
+
 // 大会ごとの課金レポートを計算する
-func billingReportByCompetition(ctx context.Context, tenantDB dbOrTx, tenantID int64, competitonID string) (*BillingReport, error) { // FIXME: slow
+// func billingReportByCompetition(ctx context.Context, tenantDB dbOrTx, tenantID int64, competitonID string) (*BillingReport, error) { // FIXME: slow
+func billingReportByCompetition(ctx context.Context, tenantDB dbOrTx, tenantID int64, competitonID string, vhsMap map[string][]VisitHistorySummaryRow) (*BillingReport, error) { // FIXME: slow
 	comp, err := retrieveCompetition(ctx, tenantDB, competitonID)
 	if err != nil {
 		return nil, fmt.Errorf("error retrieveCompetition: %w", err)
 	}
 
 	// ランキングにアクセスした参加者のIDを取得する
-	vhs := []VisitHistorySummaryRow{}
-	if err := adminDB.SelectContext(
-		ctx,
-		&vhs,
-		"SELECT player_id, MIN(created_at) AS min_created_at FROM visit_history WHERE tenant_id = ? AND competition_id = ? GROUP BY player_id", // FIXME: slow
-		tenantID,
-		comp.ID,
-	); err != nil && err != sql.ErrNoRows {
-		return nil, fmt.Errorf("error Select visit_history: tenantID=%d, competitionID=%s, %w", tenantID, comp.ID, err)
-	}
+	// vhs := []VisitHistorySummaryRow{}
+	// if err := adminDB.SelectContext(
+	// 	ctx,
+	// 	&vhs,
+	// 	"SELECT player_id, MIN(created_at) AS min_created_at FROM visit_history WHERE tenant_id = ? AND competition_id = ? GROUP BY player_id", // FIXME: slow
+	// 	tenantID,
+	// 	comp.ID,
+	// ); err != nil && err != sql.ErrNoRows {
+	// 	return nil, fmt.Errorf("error Select visit_history: tenantID=%d, competitionID=%s, %w", tenantID, comp.ID, err)
+	// }
+
+	vhs := vhsMap[competitonID]
+
 	billingMap := map[string]string{}
 	for _, vh := range vhs {
 		// competition.finished_atよりもあとの場合は、終了後に訪問したとみなして大会開催内アクセス済みとみなさない
@@ -724,8 +756,11 @@ func tenantsBillingHandler(c echo.Context) error { // FIXME slow, 遅延OK
 			); err != nil {
 				return fmt.Errorf("failed to Select competition: %w", err)
 			}
+
+			vhsMap, err := getBetterVisitHistorySummaryRow(ctx, t.ID)
+
 			for _, comp := range cs {
-				report, err := billingReportByCompetition(ctx, tenantDB, t.ID, comp.ID) // FIXME: N+1
+				report, err := billingReportByCompetition(ctx, tenantDB, t.ID, comp.ID, vhsMap) // FIXME: N+1
 				if err != nil {
 					return fmt.Errorf("failed to billingReportByCompetition: %w", err)
 				}
@@ -1196,9 +1231,22 @@ func billingHandler(c echo.Context) error { // FIXME: 遅延OK
 	); err != nil {
 		return fmt.Errorf("error Select competition: %w", err)
 	}
+
 	tbrs := make([]BillingReport, 0, len(cs))
+
+	// var mcKeys = make([]string, 0, len(cs))
+	// for _, comp := range cs {
+	// 	mcKeys = append(mcKeys, fmt.Sprintf("player_%d_%d", v.tenantID, comp.ID))
+	// }
+	// mcItems, err := memcacheClient.GetMulti(mcKeys)
+	// if err == nil {
+	// 	return nil, err
+	// }
+
+	vhsMap, err := getBetterVisitHistorySummaryRow(ctx, v.tenantID)
+
 	for _, comp := range cs {
-		report, err := billingReportByCompetition(ctx, tenantDB, v.tenantID, comp.ID) // FIXME: N+1
+		report, err := billingReportByCompetition(ctx, tenantDB, v.tenantID, comp.ID, vhsMap) // FIXME: N+1
 		if err != nil {
 			return fmt.Errorf("error billingReportByCompetition: %w", err)
 		}
