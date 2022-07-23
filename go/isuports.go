@@ -1261,8 +1261,9 @@ func playerHandler(c echo.Context) error { // FIXME: many calls
 	if err := tenantDB.SelectContext(
 		ctx,
 		&cs,
-		"SELECT * FROM competition WHERE tenant_id = ? ORDER BY created_at ASC",
-		v.tenantID,
+		"SELECT * FROM competition ORDER BY created_at ASC", // tenantはDBとして指定済なのでwhere句で指定しない
+		// "SELECT * FROM competition WHERE tenant_id = ? ORDER BY created_at ASC",
+		// v.tenantID,
 	); err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return fmt.Errorf("error Select competition: %w", err)
 	}
@@ -1280,8 +1281,9 @@ func playerHandler(c echo.Context) error { // FIXME: many calls
 			ctx,
 			&ps,
 			// 最後にCSVに登場したスコアを採用する = row_numが一番大きいもの
-			"SELECT * FROM player_score WHERE tenant_id = ? AND competition_id = ? AND player_id = ? ORDER BY row_num DESC LIMIT 1",
-			v.tenantID,
+			"SELECT * FROM player_score WHERE competition_id = ? AND player_id = ? ORDER BY row_num DESC LIMIT 1", // tenantはDBとして指定済なのでwhere句で指定しない
+			// "SELECT * FROM player_score WHERE tenant_id = ? AND competition_id = ? AND player_id = ? ORDER BY row_num DESC LIMIT 1",
+			// v.tenantID,
 			c.ID,
 			p.ID,
 		); err != nil {
