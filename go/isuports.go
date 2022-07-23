@@ -405,24 +405,12 @@ type PlayerRow struct {
 }
 
 // 参加者を取得する
-func retrievePlayer(ctx context.Context, tenantDB dbOrTx, id string) (*PlayerRow, error) { // FIXME: slow
+func retrievePlayer(ctx context.Context, tenantDB dbOrTx, id string) (*PlayerRow, error) {
 	var p PlayerRow
 	if err := tenantDB.GetContext(ctx, &p, "SELECT * FROM player WHERE id = ?", id); err != nil {
 		return nil, fmt.Errorf("error Select player: id=%s, %w", id, err)
 	}
 	return &p, nil
-}
-
-func retrievePlayers(ctx context.Context, tenantDB dbOrTx) (map[string]PlayerRow, error) {
-	var players []PlayerRow
-	if err := tenantDB.SelectContext(ctx, &players, "SELECT * FROM player"); err != nil {
-		return nil, fmt.Errorf("error Select players, %w", err)
-	}
-	playerMap := make(map[string]PlayerRow)
-	for _, p := range players {
-		playerMap[p.ID] = p
-	}
-	return playerMap, nil
 }
 
 // 参加者を認可する
@@ -841,19 +829,6 @@ func playersAddHandler(c echo.Context) error {
 	}
 	displayNames := params["display_name[]"]
 
-	// playerMap, err := retrievePlayers(ctx, tenantDB)
-	// if err != nil {
-	// 	return fmt.Errorf("error retrievePlayer: %w", err)
-	// }
-	players := []PlayerRow{}
-	if err := tenantDB.SelectContext(ctx, &players, "SELECT * FROM player"); err != nil {
-		return fmt.Errorf("error retrievePlayer: %w", err)
-	}
-	playerMap := make(map[string]PlayerRow)
-	for _, p := range players {
-		playerMap[p.ID] = p
-	}
-
 	pds := make([]PlayerDetail, 0, len(displayNames))
 	for _, displayName := range displayNames {
 		id, err := dispenseID(ctx)
@@ -872,11 +847,10 @@ func playersAddHandler(c echo.Context) error {
 				id, displayName, false, now, now, err,
 			)
 		}
-		p := playerMap[id]
-		// p, err := retrievePlayer(ctx, tenantDB, id) // FIXME: N+1
-		// if err != nil {
-		// 	return fmt.Errorf("error retrievePlayer: %w", err)
-		// }
+		p, err := retrievePlayer(ctx, tenantDB, id)
+		if err != nil {
+			return fmt.Errorf("error retrievePlayer: %w", err)
+		}
 		pds = append(pds, PlayerDetail{
 			ID:             p.ID,
 			DisplayName:    p.DisplayName,
@@ -1442,7 +1416,7 @@ func competitionRankingHandler(c echo.Context) error { // FIXME: many calls, but
 	}
 	defer fl.Close()
 	pss := []PlayerScoreRow{}
-	if err := tenantDB.SelectContext( // FIXME: slow
+	if err := tenantDB.SelectContext(
 		ctx,
 		&pss,
 		"SELECT * FROM player_score WHERE tenant_id = ? AND competition_id = ? ORDER BY row_num DESC",
