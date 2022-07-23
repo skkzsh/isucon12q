@@ -661,7 +661,7 @@ type TenantsBillingHandlerResult struct {
 // テナントごとの課金レポートを最大10件、テナントのid降順で取得する
 // GET /api/admin/tenants/billing
 // URL引数beforeを指定した場合、指定した値よりもidが小さいテナントの課金レポートを取得する
-func tenantsBillingHandler(c echo.Context) error { // FIXME slow
+func tenantsBillingHandler(c echo.Context) error { // FIXME slow, 遅延OK
 	if host := c.Request().Host; host != getEnv("ISUCON_ADMIN_HOSTNAME", "admin.t.isucon.dev") {
 		return echo.NewHTTPError(
 			http.StatusNotFound,
@@ -688,6 +688,7 @@ func tenantsBillingHandler(c echo.Context) error { // FIXME slow
 			)
 		}
 	}
+
 	// テナントごとに
 	//   大会ごとに
 	//     scoreが登録されているplayer * 100
@@ -715,7 +716,7 @@ func tenantsBillingHandler(c echo.Context) error { // FIXME slow
 			}
 			defer tenantDB.Close()
 			cs := []CompetitionRow{}
-			if err := tenantDB.SelectContext(
+			if err := tenantDB.SelectContext( // FIXME: N+1
 				ctx,
 				&cs,
 				"SELECT * FROM competition WHERE tenant_id=?",
@@ -724,7 +725,7 @@ func tenantsBillingHandler(c echo.Context) error { // FIXME slow
 				return fmt.Errorf("failed to Select competition: %w", err)
 			}
 			for _, comp := range cs {
-				report, err := billingReportByCompetition(ctx, tenantDB, t.ID, comp.ID)
+				report, err := billingReportByCompetition(ctx, tenantDB, t.ID, comp.ID) // FIXME: N+1
 				if err != nil {
 					return fmt.Errorf("failed to billingReportByCompetition: %w", err)
 				}
@@ -1170,7 +1171,7 @@ type BillingHandlerResult struct {
 // テナント管理者向けAPI
 // GET /api/organizer/billing
 // テナント内の課金レポートを取得する
-func billingHandler(c echo.Context) error {
+func billingHandler(c echo.Context) error { // FIXME: 遅延OK
 	ctx := context.Background()
 	v, err := parseViewer(c)
 	if err != nil {
@@ -1197,7 +1198,7 @@ func billingHandler(c echo.Context) error {
 	}
 	tbrs := make([]BillingReport, 0, len(cs))
 	for _, comp := range cs {
-		report, err := billingReportByCompetition(ctx, tenantDB, v.tenantID, comp.ID)
+		report, err := billingReportByCompetition(ctx, tenantDB, v.tenantID, comp.ID) // FIXME: N+1
 		if err != nil {
 			return fmt.Errorf("error billingReportByCompetition: %w", err)
 		}
@@ -1226,7 +1227,7 @@ type PlayerHandlerResult struct {
 // 参加者向けAPI
 // GET /api/player/player/:player_id
 // 参加者の詳細情報を取得する
-func playerHandler(c echo.Context) error { // FIXME: many calls, but low score
+func playerHandler(c echo.Context) error { // FIXME: many calls, but low score, 遅延OK
 	ctx := context.Background()
 
 	v, err := parseViewer(c)
@@ -1349,7 +1350,7 @@ type CompetitionRankingHandlerResult struct {
 // 参加者向けAPI
 // GET /api/player/competition/:competition_id/ranking
 // 大会ごとのランキングを取得する
-func competitionRankingHandler(c echo.Context) error { // FIXME: many calls, but low score
+func competitionRankingHandler(c echo.Context) error { // FIXME: many calls, but low score, 遅延OK
 	ctx := context.Background()
 	v, err := parseViewer(c)
 	if err != nil {
@@ -1487,7 +1488,7 @@ type CompetitionsHandlerResult struct {
 // 参加者向けAPI
 // GET /api/player/competitions
 // 大会の一覧を取得する
-func playerCompetitionsHandler(c echo.Context) error { // NOTE: low score
+func playerCompetitionsHandler(c echo.Context) error { // NOTE: low score, 遅延OK
 	ctx := context.Background()
 
 	v, err := parseViewer(c)
