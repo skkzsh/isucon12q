@@ -79,3 +79,7 @@ max_binlog_size   = 100M
 
 innodb_flush_log_at_trx_commit = 0
 disable-log-bin=1
+innodb_flush_method=O_DIRECT
+# innodb_buffer_pool_size = 3GB
+# 物理メモリの80%ぐらい
+
