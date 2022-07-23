@@ -43,8 +43,8 @@ const (
 	RolePlayer    = "player"
 	RoleNone      = "none"
 
-	DatadogServiceName          = "isuports"
-	DatadogEnv                  = "myenv"
+	DatadogServiceName = "isuports"
+	DatadogEnv         = "myenv"
 )
 
 var (
@@ -1276,7 +1276,7 @@ func playerHandler(c echo.Context) error { // FIXME: many calls
 	pss := make([]PlayerScoreRow, 0, len(cs))
 	for _, c := range cs {
 		ps := PlayerScoreRow{}
-		if err := tenantDB.GetContext(
+		if err := tenantDB.GetContext( // FIXME: slow
 			ctx,
 			&ps,
 			// 最後にCSVに登場したスコアを採用する = row_numが一番大きいもの
