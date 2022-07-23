@@ -7,8 +7,8 @@ sudo truncate -s 0 -c /var/log/mysql/mysql-slow.log
 sudo truncate -s 0 -c /var/log/mysql/error.log
 # mysqladmin flush-logs
 
-cd ~/webapp/go
-make
+# cd ~/webapp/go
+# make
 sudo systemctl restart isuports.service
 
 sudo systemctl restart mysql
