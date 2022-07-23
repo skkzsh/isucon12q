@@ -4,7 +4,7 @@ set -euvx
 mkdir -p ~/logs
 
 sudo cat /var/log/nginx/access.log |
-	alp json -q --qs-ignore-values --sort avg -r -m '^/api/player/player/[0-9a-f]+$','^/api/player/competition/[0-9a-f]+/ranking$','^/api/organizer/player/[0-9a-f]+/disqualified$','^/api/organizer/competition/[0-9a-f]+/score$','^/api/organizer/competition/[0-9a-f]+/finish$' |
+	alp json -q --qs-ignore-values --sort avg -r -m '^/api/player/player/[0-9a-f]+$','^/api/player/competition/[0-9a-f]+/ranking.*','^/api/organizer/player/[0-9a-f]+/disqualified$','^/api/organizer/competition/[0-9a-f]+/score$','^/api/organizer/competition/[0-9a-f]+/finish$' |
 	tee ~/logs/alp-$(date +%Y%m%d-%H%M%S).log
 
 # sudo mysqldumpslow /var/log/mysql/mysql-slow.log | tee ~/logs/slow-$(date +%Y%m%d-%H%M%S).log
