@@ -174,7 +174,7 @@ func Run() {
 
 	e := echo.New()
 	e.Debug = true
-	e.Logger.SetLevel(log.DEBUG) // FIXME: stop debug log
+	// e.Logger.SetLevel(log.DEBUG) // FIXME: stop debug log
 
 	// sqliteのクエリログを出力する設定
 	// 環境変数 ISUCON_SQLITE_TRACE_FILE を設定すると、そのファイルにクエリログをJSON形式で出力する
