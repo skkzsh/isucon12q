@@ -110,7 +110,7 @@ func dispenseID(ctx context.Context) (string, error) {
 	var lastErr error
 	for i := 0; i < 100; i++ {
 		var ret sql.Result
-		ret, err := adminDB.ExecContext(ctx, "REPLACE INTO id_generator (stub) VALUES (?);", "a")
+		ret, err := adminDB.ExecContext(ctx, "REPLACE INTO id_generator (stub) VALUES (?);", "a") // FIXME: slow, many calls
 		if err != nil {
 			if merr, ok := err.(*mysql.MySQLError); ok && merr.Number == 1213 { // deadlock
 				lastErr = fmt.Errorf("error REPLACE INTO id_generator: %w", err)
@@ -585,7 +585,7 @@ func billingReportByCompetition(ctx context.Context, tenantDB dbOrTx, tenantID i
 	if err := adminDB.SelectContext(
 		ctx,
 		&vhs,
-		"SELECT player_id, MIN(created_at) AS min_created_at FROM visit_history WHERE tenant_id = ? AND competition_id = ? GROUP BY player_id",
+		"SELECT player_id, MIN(created_at) AS min_created_at FROM visit_history WHERE tenant_id = ? AND competition_id = ? GROUP BY player_id", // FIXME: slow
 		tenantID,
 		comp.ID,
 	); err != nil && err != sql.ErrNoRows {
@@ -1225,7 +1225,7 @@ type PlayerHandlerResult struct {
 // 参加者向けAPI
 // GET /api/player/player/:player_id
 // 参加者の詳細情報を取得する
-func playerHandler(c echo.Context) error {
+func playerHandler(c echo.Context) error { // FIXME: many calls
 	ctx := context.Background()
 
 	v, err := parseViewer(c)
@@ -1336,7 +1336,7 @@ type CompetitionRankingHandlerResult struct {
 // 参加者向けAPI
 // GET /api/player/competition/:competition_id/ranking
 // 大会ごとのランキングを取得する
-func competitionRankingHandler(c echo.Context) error {
+func competitionRankingHandler(c echo.Context) error { // FIXME: many calls
 	ctx := context.Background()
 	v, err := parseViewer(c)
 	if err != nil {
