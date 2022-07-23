@@ -18,6 +18,10 @@ import (
 	"strings"
 	"time"
 
+	echotrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/labstack/echo.v4"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
+	"gopkg.in/DataDog/dd-trace-go.v1/profiler"
+
 	"github.com/go-sql-driver/mysql"
 	"github.com/gofrs/flock"
 	"github.com/jmoiron/sqlx"
@@ -38,6 +42,9 @@ const (
 	RoleOrganizer = "organizer"
 	RolePlayer    = "player"
 	RoleNone      = "none"
+
+	DatadogServiceName          = "isuports"
+	DatadogEnv                  = "myenv"
 )
 
 var (
@@ -133,14 +140,41 @@ func SetCacheControlPrivate(next echo.HandlerFunc) echo.HandlerFunc {
 
 // Run は cmd/isuports/main.go から呼ばれるエントリーポイントです
 func Run() {
-	e := echo.New()
-	e.Debug = true
-	e.Logger.SetLevel(log.DEBUG)
-
 	var (
 		sqlLogger io.Closer
 		err       error
 	)
+
+	err = profiler.Start(
+		profiler.WithService(DatadogServiceName),
+		profiler.WithEnv(DatadogEnv),
+		profiler.WithProfileTypes(
+			profiler.CPUProfile,
+			profiler.HeapProfile,
+			// The profiles below are disabled by default to keep overhead
+			// low, but can be enabled as needed.
+
+			// profiler.BlockProfile,
+			// profiler.MutexProfile,
+			// profiler.GoroutineProfile,
+		),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer profiler.Stop()
+
+	tracer.Start(
+		tracer.WithService(DatadogServiceName),
+		tracer.WithEnv(DatadogEnv),
+		// tracer.WithRuntimeMetrics(),
+	)
+	defer tracer.Stop()
+
+	e := echo.New()
+	e.Debug = true
+	e.Logger.SetLevel(log.DEBUG) // FIXME: stop debug log
+
 	// sqliteのクエリログを出力する設定
 	// 環境変数 ISUCON_SQLITE_TRACE_FILE を設定すると、そのファイルにクエリログをJSON形式で出力する
 	// 未設定なら出力しない
@@ -154,6 +188,8 @@ func Run() {
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 	e.Use(SetCacheControlPrivate)
+
+	e.Use(echotrace.Middleware(echotrace.WithServiceName(DatadogServiceName)))
 
 	// SaaS管理者向けAPI
 	e.POST("/api/admin/tenants/add", tenantsAddHandler)
