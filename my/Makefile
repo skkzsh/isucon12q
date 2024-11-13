@@ -40,7 +40,7 @@ conf/backup:
 conf/nginx/deploy:
 	sudo cp $(NGINX_CONF){,.$(DATE)}
 	sudo cp {$(GIT_DIR),}$(NGINX_CONF)
-	sudo cp -r $(NGINX_SITES_AVAIL){,.$(DATE)}
+	sudo cp $(NGINX_SITES_AVAIL)/$(APP_NAME).conf{,.$(DATE)}
 	sudo cp $(GIT_DIR)$(NGINX_SITES_AVAIL)/*.conf $(NGINX_SITES_AVAIL)/
 
 conf/mysql/deploy:
