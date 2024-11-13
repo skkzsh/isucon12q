@@ -11,9 +11,9 @@ APP_DIR   := $(GIT_DIR)/go
 BUILD_CMD := make
 BENCH_DIR := ~/bench
 BENCH_CMD := ./bench -target-addr 127.0.0.1:443
-ALP_MATCH := '^/api/organizer/player/[0-9a-f]+/disqualified$$','^/api/organizer/competition/[0-9a-f]+/finish$$','^/api/organizer/competition/[0-9a-f]+/score$$','^/api/player/player/[0-9a-f]+$$','^/api/player/competition/[0-9a-f]+/ranking$$'
-# ALP_MATCH := '^/api/player/player/[0-9a-f]+$$','^/api/player/competition/[0-9a-f]+/ranking$$','^/api/player/competition/[0-9a-f]+/ranking\?rank_after=xxx$$','^/api/organizer/player/[0-9a-f]+/disqualified$$','^/api/organizer/competition/[0-9a-f]+/score$$','^/api/organizer/competition/[0-9a-f]+/finish$$'
-ALP_OPTS ?= -q # --qs-ignore-values --limit 10000
+# TODO: query部分は要調整
+ALP_MATCH := '^/api/admin/tenants/billing\?before=xxx$$','^/api/organizer/player/[0-9a-f]+/disqualified$$','^/api/organizer/competition/[0-9a-f]+/finish$$','^/api/organizer/competition/[0-9a-f]+/score$$','^/api/player/player/[0-9a-f]+$$','^/api/player/competition/[0-9a-f]+/ranking$$','^/api/player/competition/[0-9a-f]+/ranking\?rank_after=xxx$$'
+ALP_OPTS ?= -q --qs-ignore-values #  --limit 10000
 
 NGINX_ACCESS_LOG := /var/log/nginx/access
 NGINX_ERROR_LOG := /var/log/nginx/error
@@ -82,7 +82,6 @@ alp: prepare # TODO avg, sum
 	$(ALP_OPTS) --sort avg -r \
 	-m $(ALP_MATCH) \
 	| tee ~/logs/alp-$(DATE).log
-
 
 slp: prepare
 	sudo pt-query-digest $(SLOW_QUERY_LOG).log \
