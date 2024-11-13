@@ -11,7 +11,7 @@ APP_DIR   := $(GIT_DIR)/go
 BUILD_CMD := make
 BENCH_DIR := ~/bench
 BENCH_CMD := ./bench -target-addr 127.0.0.1:443
-# TODO: ALP_MATCHはAPIの実装やnginxのlogから決める
+ALP_MATCH := '^/api/organizer/player/[0-9a-f]+/disqualified$$','^/api/organizer/competition/[0-9a-f]+/finish$$','^/api/organizer/competition/[0-9a-f]+/score$$','^/api/player/player/[0-9a-f]+$$','^/api/player/competition/[0-9a-f]+/ranking$$'
 # ALP_MATCH := '^/api/player/player/[0-9a-f]+$$','^/api/player/competition/[0-9a-f]+/ranking$$','^/api/player/competition/[0-9a-f]+/ranking\?rank_after=xxx$$','^/api/organizer/player/[0-9a-f]+/disqualified$$','^/api/organizer/competition/[0-9a-f]+/score$$','^/api/organizer/competition/[0-9a-f]+/finish$$'
 ALP_OPTS ?= -q # --qs-ignore-values --limit 10000
 
@@ -80,8 +80,9 @@ bench: bench/before
 alp: prepare # TODO avg, sum
 	sudo alp json --file $(NGINX_ACCESS_LOG).log \
 	$(ALP_OPTS) --sort avg -r \
+	-m $(ALP_MATCH) \
 	| tee ~/logs/alp-$(DATE).log
-    # -m $(ALP_MATCH) | \ # TODO
+
 
 slp: prepare
 	sudo pt-query-digest $(SLOW_QUERY_LOG).log \
