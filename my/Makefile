@@ -61,11 +61,12 @@ build:
 	cd $(APP_DIR) && $(BUILD_CMD)
 
 restart:
-	sudo systemctl restart $(APP_NAME)
 	sudo systemctl restart $(DB_MIDDLE)
+	sudo systemctl restart $(APP_NAME)
+	docker compose -f $(GIT_DIR)/docker-compose-go.yml up -d --wait # benchが失敗してしまわないようにwait
 	sudo systemctl restart nginx
+    # sudo systemctl restart redis # TODO
     # sudo systemctl restart datadog-agent
-    # sudo systemctl restart memcached
 
 prepare:
 	mkdir -p ~/logs
