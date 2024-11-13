@@ -92,7 +92,7 @@ issue:
 	echo "<details><summary>Bench error</summary>"; echo -e "\n\`\`\`"; cat ~/logs/bench-error-$(DATE).log; echo "\`\`\`"; echo "</details>"; \
 	echo "<details><summary>NGINX error</summary>"; echo -e "\n\`\`\`"; sudo cat $(NGINX_ERROR_LOG).log; echo "\`\`\`"; echo "</details>"; \
 	echo "<details><summary>MySQL error</summary>"; echo -e "\n\`\`\`"; sudo cat $(MYSQL_ERROR_LOG).log; echo "\`\`\`";  echo "</details>"; \
-	echo "<details><summary>App error</summary>"; echo -e "\n\`\`\`"; sudo journalctl -u $(APP_NAME) --since "$$(systemctl show $(APP_NAME) -p ActiveEnterTimestamp | cut -d= -f2)" --no-pager -p err ; echo "\`\`\`"; echo "</details>"; \
+	echo "<details><summary>App error</summary>"; echo -e "\n\`\`\`"; cd $(GIT_DIR); docker compose -f docker-compose-go.yml logs --no-log-prefix | jq -R 'fromjson? | select(.level == "ERROR")' ; echo "\`\`\`"; echo "</details>"; \
 	) | \
 	gh issue comment $(ISSUE) -F-
     # TODO: alp
@@ -100,4 +100,5 @@ issue:
     # TODO: slow query
     # echo "<details><summary>Slow query</summary>"; echo -e "\n\`\`\`"; cat ~/logs/pt-query-digest-$(DATE).log; echo "\`\`\`";  echo "</details>"; \
     # echo "<details><summary>App error</summary>"; echo -e "\n\`\`\`"; sudo journalctl -u $(APP_NAME) --since "$$(systemctl show $(APP_NAME) -p ActiveEnterTimestamp | cut -d= -f2)" --no-pager -o json | jq -r .MESSAGE | jq -R 'fromjson? | select(.error != "")'; echo "\`\`\`"; echo "</details>"; \
+    # echo "<details><summary>App error</summary>"; echo -e "\n\`\`\`"; sudo journalctl -u $(APP_NAME) --since "$$(systemctl show $(APP_NAME) -p ActiveEnterTimestamp | cut -d= -f2)" --no-pager -p err ; echo "\`\`\`"; echo "</details>"; \
     # TODO: docker compose logs
