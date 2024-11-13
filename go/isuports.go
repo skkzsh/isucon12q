@@ -6,6 +6,12 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
+	"github.com/mattn/go-sqlite3"
+	sqltrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/database/sql"
+	sqlxtrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/jmoiron/sqlx"
+	echotrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/labstack/echo.v4"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
+	"gopkg.in/DataDog/dd-trace-go.v1/profiler"
 	"io"
 	"net/http"
 	"os"
@@ -38,6 +44,9 @@ const (
 	RoleOrganizer = "organizer"
 	RolePlayer    = "player"
 	RoleNone      = "none"
+
+	ServiceName = "isuports"
+	DatadogEnv  = "isucon12q"
 )
 
 var (
@@ -67,7 +76,9 @@ func connectAdminDB() (*sqlx.DB, error) {
 	config.DBName = getEnv("ISUCON_DB_NAME", "isuports")
 	config.ParseTime = true
 	dsn := config.FormatDSN()
-	return sqlx.Open("mysql", dsn)
+	sqltrace.Register("mysql", &mysql.MySQLDriver{}, sqltrace.WithServiceName(ServiceName))
+	return sqlxtrace.Open("mysql", dsn)
+	// return sqlx.Open("mysql", dsn)
 }
 
 // テナントDBのパスを返す
@@ -79,7 +90,9 @@ func tenantDBPath(id int64) string {
 // テナントDBに接続する
 func connectToTenantDB(id int64) (*sqlx.DB, error) {
 	p := tenantDBPath(id)
-	db, err := sqlx.Open(sqliteDriverName, fmt.Sprintf("file:%s?mode=rw", p))
+	sqltrace.Register(sqliteDriverName, &sqlite3.SQLiteDriver{}, sqltrace.WithServiceName(ServiceName))
+	db, err := sqlxtrace.Open(sqliteDriverName, fmt.Sprintf("file:%s?mode=rw", p))
+	// db, err := sqlx.Open(sqliteDriverName, fmt.Sprintf("file:%s?mode=rw", p))
 	if err != nil {
 		return nil, fmt.Errorf("failed to open tenant DB: %w", err)
 	}
@@ -133,14 +146,46 @@ func SetCacheControlPrivate(next echo.HandlerFunc) echo.HandlerFunc {
 
 // Run は cmd/isuports/main.go から呼ばれるエントリーポイントです
 func Run() {
+	var err error
+
+	err = profiler.Start(
+		profiler.WithService(ServiceName), // DD_SERVICE
+		profiler.WithEnv(DatadogEnv),      // DD_ENV
+		// profiler.WithVersion("<APPLICATION_VERSION>"), // DD_VERSION
+		// profiler.WithTags("<KEY1>:<VALUE1>", "<KEY2>:<VALUE2>"),
+		profiler.WithProfileTypes(
+			profiler.CPUProfile,
+			profiler.HeapProfile,
+			// The profiles below are disabled by default to keep overhead
+			// low, but can be enabled as needed.
+
+			// profiler.BlockProfile,
+			// profiler.MutexProfile,
+			// profiler.GoroutineProfile,
+		),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer profiler.Stop()
+
+	tracer.Start(
+		tracer.WithService(ServiceName), // DD_SERVICE
+		tracer.WithEnv(DatadogEnv),      // DD_ENV
+		// tracer.WithServiceVersion("abc123"), // DD_VERSION
+		// tracer.WithRuntimeMetrics(), // DD_RUNTIME_METRICS_ENABLED
+	)
+	defer tracer.Stop()
+
 	e := echo.New()
-	e.Debug = true
-	e.Logger.SetLevel(log.DEBUG)
+	e.Debug = true               // TODO
+	e.Logger.SetLevel(log.DEBUG) // TODO
 
 	var (
 		sqlLogger io.Closer
-		err       error
 	)
+	// err       error
+
 	// sqliteのクエリログを出力する設定
 	// 環境変数 ISUCON_SQLITE_TRACE_FILE を設定すると、そのファイルにクエリログをJSON形式で出力する
 	// 未設定なら出力しない
@@ -151,7 +196,8 @@ func Run() {
 	}
 	defer sqlLogger.Close()
 
-	e.Use(middleware.Logger())
+	e.Use(echotrace.Middleware(echotrace.WithServiceName(ServiceName)))
+	e.Use(middleware.Logger()) // TODO
 	e.Use(middleware.Recover())
 	e.Use(SetCacheControlPrivate)
 
