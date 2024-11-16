@@ -6,8 +6,8 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/mattn/go-sqlite3"
-	"github.com/oklog/ulid/v2"
 	sqltrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/database/sql"
 	sqlxtrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/jmoiron/sqlx"
 	echotrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/labstack/echo.v4"
@@ -113,13 +113,13 @@ func createTenantDB(id int64) error {
 
 // システム全体で一意なIDを生成する
 func dispenseID(ctx context.Context) (string, error) {
-	return ulid.Make().String(), nil
+	// return ulid.Make().String(), nil
 
-	// if id, err := uuid.NewV7(); err == nil {
-	// 	return id.String(), nil
-	// } else {
-	// 	return "", fmt.Errorf("error uuid.NewV7: %w", err)
-	// }
+	if id, err := uuid.NewV7(); err == nil {
+		return id.String(), nil
+	} else {
+		return "", fmt.Errorf("error uuid.NewV7: %w", err)
+	}
 
 	// var id int64
 	// var lastErr error
