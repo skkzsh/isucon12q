@@ -1295,7 +1295,7 @@ func playerHandler(c echo.Context) error {
 	pss := make([]PlayerScoreRow, 0, len(cs))
 	for _, c := range cs {
 		ps := PlayerScoreRow{}
-		if err := tenantDB.GetContext(
+		if err := tenantDB.GetContext( // TODO: CPU使用率が高い
 			ctx,
 			&ps,
 			// 最後にCSVに登場したスコアを採用する = row_numが一番大きいもの
