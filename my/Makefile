@@ -12,7 +12,11 @@ BUILD_CMD := make
 BENCH_DIR := ~/bench
 BENCH_CMD := ./bench -target-addr 127.0.0.1:443
 # TODO: query部分は要調整
-ALP_MATCH := '^/api/admin/tenants/billing\?before=xxx$$','^/api/organizer/player/[0-9a-f]+/disqualified$$','^/api/organizer/competition/[0-9a-f]+/finish$$','^/api/organizer/competition/[0-9a-f]+/score$$','^/api/player/player/[0-9a-f]+$$','^/api/player/competition/[0-9a-f]+/ranking$$','^/api/player/competition/[0-9a-f]+/ranking\?rank_after=xxx$$'
+# default
+# ID_PATTERN := [0-9a-f]+
+# +ULID
+ID_PATTERN := [0-9a-fA-Z]+
+ALP_MATCH := '^/api/admin/tenants/billing\?before=xxx$$','^/api/organizer/player/$(ID_PATTERN)/disqualified$$','^/api/organizer/competition/$(ID_PATTERN)/finish$$','^/api/organizer/competition/$(ID_PATTERN)/score$$','^/api/player/player/$(ID_PATTERN)$$','^/api/player/competition/$(ID_PATTERN)/ranking$$','^/api/player/competition/$(ID_PATTERN)/ranking\?rank_after=xxx$$'
 ALP_OPTS ?= -q --qs-ignore-values #  --limit 10000
 
 NGINX_ACCESS_LOG := /var/log/nginx/access

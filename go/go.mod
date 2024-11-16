@@ -12,6 +12,7 @@ require (
 	github.com/labstack/gommon v0.4.0
 	github.com/lestrrat-go/jwx/v2 v2.0.2
 	github.com/mattn/go-sqlite3 v1.14.18
+	github.com/oklog/ulid/v2 v2.1.0
 	github.com/shogo82148/go-sql-proxy v0.6.1
 	gopkg.in/DataDog/dd-trace-go.v1 v1.69.1
 )
