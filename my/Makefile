@@ -63,7 +63,9 @@ build:
 restart:
 	sudo systemctl restart $(DB_MIDDLE)
 	sudo systemctl restart $(APP_NAME)
-	docker compose -f $(GIT_DIR)/docker-compose-go.yml up -d --wait # benchが失敗してしまわないようにwait
+	# benchが失敗してしまわないようにwait
+	# docker compose -f $(GIT_DIR)/docker-compose-go.yml up -d --wait
+	while ! nc -z localhost 3000; do echo "Waiting for port..."; sleep 1; done
 	sudo systemctl restart nginx
     # sudo systemctl restart redis # TODO
     # sudo systemctl restart datadog-agent
