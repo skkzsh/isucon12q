@@ -19,3 +19,8 @@ mysql -u"$ISUCON_DB_USER" \
 # SQLiteのデータベースを初期化
 rm -f ../tenant_db/*.db
 cp -r ../../initial_data/*.db ../tenant_db/
+
+# 初期化処理の中でなく, あらかじめ用意した方がいいかも
+for db in ../tenant_db/*.db; do
+  sqlite3 $db < ./tenant/create_index.sql
+done
