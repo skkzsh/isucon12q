@@ -22,5 +22,6 @@ cp -r ../../initial_data/*.db ../tenant_db/
 
 # 初期化処理の中でなく, あらかじめ用意した方がいいかも
 for db in ../tenant_db/*.db; do
+  sqlite3 $db < ./tenant/recreate_table.sql
   sqlite3 $db < ./tenant/create_index.sql
 done
