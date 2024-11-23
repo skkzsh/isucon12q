@@ -12,9 +12,9 @@ permissions:
   contents: read
 
 # 同じワークフロー/同じブランチで実行中ジョブがあれば自動停止させる
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+# concurrency:
+#   group: ${{ github.workflow }}-${{ github.ref }}
+#   cancel-in-progress: true
 
 jobs:
   build:
