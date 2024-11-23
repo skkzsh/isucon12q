@@ -1271,6 +1271,11 @@ func playerHandler(c echo.Context) error {
 		return fmt.Errorf("error setting synchronous: %w", err)
 	}
 
+	_, err = tenantDB.ExecContext(ctx, "PRAGMA journal_mode = OFF")
+	if err != nil {
+		return fmt.Errorf("error setting journal_mode: %w", err)
+	}
+
 	if err := authorizePlayer(ctx, tenantDB, v.playerID); err != nil {
 		return err
 	}
