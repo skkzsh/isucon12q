@@ -1590,7 +1590,7 @@ func competitionRankingHandler(c echo.Context) error {
 	// cache
 	if rankAfterStr == "" {
 		if j, err := json.Marshal(res); err == nil {
-			if err = rdb.Set(ctx, fmt.Sprintf("competition_id:%s", competitionID), j, 0).Err(); err == nil {
+			if err = rdb.Set(ctx, fmt.Sprintf("competition_id:%s", competitionID), j, 3*time.Second).Err(); err == nil {
 				fmt.Println("Cache set for competition_id: ", competitionID)
 				return c.JSON(http.StatusOK, res)
 			} else {
