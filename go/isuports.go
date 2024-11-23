@@ -1266,11 +1266,6 @@ func playerHandler(c echo.Context) error {
 	}
 	defer tenantDB.Close()
 
-	_, err = tenantDB.ExecContext(ctx, "PRAGMA synchronous = OFF")
-	if err != nil {
-		return fmt.Errorf("error setting synchronous: %w", err)
-	}
-
 	if err := authorizePlayer(ctx, tenantDB, v.playerID); err != nil {
 		return err
 	}
