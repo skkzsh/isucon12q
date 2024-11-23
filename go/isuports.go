@@ -430,7 +430,7 @@ type PlayerRow struct {
 // 参加者を取得する
 func retrievePlayer(ctx context.Context, tenantDB dbOrTx, id string) (*PlayerRow, error) {
 	var p PlayerRow
-	if err := tenantDB.GetContext(ctx, &p, "SELECT * FROM player WHERE id = ?", id); err != nil {
+	if err := tenantDB.GetContext(ctx, &p, "SELECT * FROM player WHERE id = ?", id); err != nil { // TODO: CPU使用率が高い
 		return nil, fmt.Errorf("error Select player: id=%s, %w", id, err)
 	}
 	return &p, nil
@@ -1300,7 +1300,7 @@ func playerHandler(c echo.Context) error {
 	// pss := make([]PlayerScoreRow, 0, len(cs))
 	var pss []PlayerScoreRow
 
-	if err := tenantDB.SelectContext(
+	if err := tenantDB.SelectContext( // TODO: CPU使用率が高い
 		ctx,
 		&pss,
 		// 最後にCSVに登場したスコアを採用する = row_numが一番大きいもの
