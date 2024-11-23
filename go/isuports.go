@@ -1469,18 +1469,6 @@ func competitionRankingHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "competition_id is required")
 	}
 
-	// cache
-	if val, err := rdb.Get(ctx, fmt.Sprintf("competition_id:%s", competitionID)).Result(); err == nil {
-		fmt.Println("Cache hit for competition_id: ", competitionID)
-		var res SuccessResult
-		if err := json.Unmarshal([]byte(val), &res); err == nil {
-			return c.JSON(http.StatusOK, res)
-		} else {
-			return fmt.Errorf("error json.Unmarshal: %w", err)
-		}
-	}
-	fmt.Println("Cache no hit for competition_id: ", competitionID)
-
 	// 大会の存在確認
 	competition, err := retrieveCompetition(ctx, tenantDB, competitionID)
 	if err != nil {
@@ -1513,6 +1501,19 @@ func competitionRankingHandler(c echo.Context) error {
 		if rankAfter, err = strconv.ParseInt(rankAfterStr, 10, 64); err != nil {
 			return fmt.Errorf("error strconv.ParseUint: rankAfterStr=%s, %w", rankAfterStr, err)
 		}
+	} else {
+		// rankAfterがないときだけcacheを使ってみる
+		// cache
+		if val, err := rdb.Get(ctx, fmt.Sprintf("competition_id:%s", competitionID)).Result(); err == nil {
+			fmt.Println("Cache hit for competition_id: ", competitionID)
+			var res SuccessResult
+			if err := json.Unmarshal([]byte(val), &res); err == nil {
+				return c.JSON(http.StatusOK, res)
+			} else {
+				return fmt.Errorf("error json.Unmarshal: %w", err)
+			}
+		}
+		fmt.Println("Cache no hit for competition_id: ", competitionID)
 	}
 
 	// player_scoreを読んでいるときに更新が走ると不整合が起こるのでロックを取得する
@@ -1585,19 +1586,22 @@ func competitionRankingHandler(c echo.Context) error {
 		},
 	}
 
+	// rankAfterがないときだけcacheしてみる
 	// cache
-	if j, err := json.Marshal(res); err == nil {
-		if err = rdb.Set(ctx, fmt.Sprintf("competition_id:%s", competitionID), j, 0).Err(); err == nil {
-			fmt.Println("Cache set for competition_id: ", competitionID)
-			return c.JSON(http.StatusOK, res)
+	if rankAfterStr == "" {
+		if j, err := json.Marshal(res); err == nil {
+			if err = rdb.Set(ctx, fmt.Sprintf("competition_id:%s", competitionID), j, 0).Err(); err == nil {
+				fmt.Println("Cache set for competition_id: ", competitionID)
+				return c.JSON(http.StatusOK, res)
+			} else {
+				return fmt.Errorf("error rdb.Set: %w", err)
+			}
 		} else {
-			return fmt.Errorf("error rdb.Set: %w", err)
+			return fmt.Errorf("error json.Marshal: %w", err)
 		}
-	} else {
-		return fmt.Errorf("error json.Marshal: %w", err)
 	}
 
-	// return c.JSON(http.StatusOK, res)
+	return c.JSON(http.StatusOK, res)
 }
 
 type CompetitionsHandlerResult struct {
