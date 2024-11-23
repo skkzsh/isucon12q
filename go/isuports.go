@@ -1243,6 +1243,11 @@ func competitionScoreHandler(c echo.Context) error {
 		}
 	}
 
+	// competition_id の cache を削除する
+	if err := rdb.Del(ctx, fmt.Sprintf("competition_id:%s", competitionID)).Err(); err != nil {
+		return fmt.Errorf("error rdb.Del: %w", err)
+	}
+
 	if err = tx.Commit(); err != nil {
 		return fmt.Errorf("error committing transaction: %w", err)
 	}
@@ -1590,7 +1595,7 @@ func competitionRankingHandler(c echo.Context) error {
 	// cache
 	if rankAfterStr == "" {
 		if j, err := json.Marshal(res); err == nil {
-			if err = rdb.Set(ctx, fmt.Sprintf("competition_id:%s", competitionID), j, 3*time.Second).Err(); err == nil {
+			if err = rdb.Set(ctx, fmt.Sprintf("competition_id:%s", competitionID), j, 0).Err(); err == nil {
 				fmt.Println("Cache set for competition_id: ", competitionID)
 				return c.JSON(http.StatusOK, res)
 			} else {
