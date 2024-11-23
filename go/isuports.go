@@ -1243,8 +1243,17 @@ func competitionScoreHandler(c echo.Context) error {
 		}
 	}
 
-	// competition_id の cache を削除する
+	// player_scoreが更新されたので, 古いデータが使われないように cache を削除する
 	if err := rdb.Del(ctx, fmt.Sprintf("competition_id:%s", competitionID)).Err(); err != nil {
+		return fmt.Errorf("error rdb.Del: %w", err)
+	}
+
+	// player_scoreが更新されたので, 古いデータが使われないように cache を削除する
+	playerIdKeys := make([]string, 0, len(playerScoreRows))
+	for _, ps := range playerScoreRows {
+		playerIdKeys = append(playerIdKeys, fmt.Sprintf("player_id:%s", ps.PlayerID))
+	}
+	if err := rdb.Del(ctx, playerIdKeys...).Err(); err != nil {
 		return fmt.Errorf("error rdb.Del: %w", err)
 	}
 
@@ -1346,6 +1355,19 @@ func playerHandler(c echo.Context) error {
 	if playerID == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "player_id is required")
 	}
+
+	// cache
+	if val, err := rdb.Get(ctx, fmt.Sprintf("player_id:%s", playerID)).Result(); err == nil {
+		fmt.Println("Cache hit for player_id: ", playerID)
+		var res SuccessResult
+		if err := json.Unmarshal([]byte(val), &res); err == nil {
+			return c.JSON(http.StatusOK, res)
+		} else {
+			return fmt.Errorf("error json.Unmarshal: %w", err)
+		}
+	}
+	fmt.Println("Cache no hit for player_id: ", playerID)
+
 	p, err := retrievePlayer(ctx, tenantDB, playerID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -1430,6 +1452,18 @@ func playerHandler(c echo.Context) error {
 			Scores: psds,
 		},
 	}
+
+	// cache
+	if j, err := json.Marshal(res); err == nil {
+		if err = rdb.Set(ctx, fmt.Sprintf("player_id:%s", playerID), j, 0).Err(); err == nil {
+			fmt.Println("Cache set for player_id: ", playerID)
+		} else {
+			return fmt.Errorf("error rdb.Set: %w", err)
+		}
+	} else {
+		return fmt.Errorf("error json.Marshal: %w", err)
+	}
+
 	return c.JSON(http.StatusOK, res)
 }
 
@@ -1489,7 +1523,7 @@ func competitionRankingHandler(c echo.Context) error {
 		return fmt.Errorf("error Select tenant: id=%d, %w", v.tenantID, err)
 	}
 
-	if _, err := adminDB.ExecContext(
+	if _, err := adminDB.ExecContext( // TODO: select visit_history の高速化のため, 初回だけinsertするといいかも?
 		ctx,
 		"INSERT INTO visit_history (player_id, tenant_id, competition_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
 		v.playerID, tenant.ID, competitionID, now, now,
@@ -1597,7 +1631,6 @@ func competitionRankingHandler(c echo.Context) error {
 		if j, err := json.Marshal(res); err == nil {
 			if err = rdb.Set(ctx, fmt.Sprintf("competition_id:%s", competitionID), j, 0).Err(); err == nil {
 				fmt.Println("Cache set for competition_id: ", competitionID)
-				return c.JSON(http.StatusOK, res)
 			} else {
 				return fmt.Errorf("error rdb.Set: %w", err)
 			}
