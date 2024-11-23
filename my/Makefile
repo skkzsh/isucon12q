@@ -73,6 +73,7 @@ restart:
 	# docker compose -f $(GIT_DIR)/docker-compose-go.yml up -d --wait
 	while ! nc -z localhost 3000; do echo "Waiting for port..."; sleep 1; done
 	sudo systemctl restart nginx
+	redis-cli FLUSHALL
     # sudo systemctl restart redis # TODO
     # sudo systemctl restart datadog-agent
 
