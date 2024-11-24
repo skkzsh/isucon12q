@@ -1524,13 +1524,10 @@ func competitionRankingHandler(c echo.Context) error {
 		return fmt.Errorf("error Select tenant: id=%d, %w", v.tenantID, err)
 	}
 
-	if _, err := adminDB.ExecContext(
+	if _, err := adminDB.ExecContext( // TODO: select visit_history の高速化のため, 初回だけinsertするといいかも?
 		ctx,
-		// "INSERT INTO visit_history (player_id, tenant_id, competition_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
-		"INSERT INTO visit_history (player_id, tenant_id, competition_id, created_at, updated_at) SELECT ?, ?, ?, ?, ?"+
-			" WHERE NOT EXISTS (SELECT 1 FROM visit_history WHERE tenant_id =? AND competition_id = ? AND player_id = ?)",
-		// visit_history は最古データしか参照していないので, insertは初回だけにする
-		v.playerID, tenant.ID, competitionID, now, now, tenant.ID, competitionID, v.playerID,
+		"INSERT INTO visit_history (player_id, tenant_id, competition_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+		v.playerID, tenant.ID, competitionID, now, now,
 	); err != nil {
 		return fmt.Errorf(
 			"error Insert visit_history: playerID=%s, tenantID=%d, competitionID=%s, createdAt=%d, updatedAt=%d, %w",
