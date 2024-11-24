@@ -542,6 +542,7 @@ type TenantsAddHandlerResult struct {
 // SasS管理者用API
 // テナントを追加する
 // POST /api/admin/tenants/add
+// TODO: 429 Too Many Requestsを返却可
 func tenantsAddHandler(c echo.Context) error {
 	v, err := parseViewer(c)
 	if err != nil {
@@ -635,6 +636,7 @@ type VisitHistorySummaryRow struct {
 }
 
 // 大会ごとの課金レポートを計算する
+// TODO: N+1
 func billingReportByCompetition(ctx context.Context, tenantDB dbOrTx, tenantID int64, competitonID string) (*BillingReport, error) {
 	comp, err := retrieveCompetition(ctx, tenantDB, competitonID)
 	if err != nil {
@@ -721,6 +723,7 @@ type TenantsBillingHandlerResult struct {
 // テナントごとの課金レポートを最大10件、テナントのid降順で取得する
 // GET /api/admin/tenants/billing
 // URL引数beforeを指定した場合、指定した値よりもidが小さいテナントの課金レポートを取得する
+// TODO: POST /finish から3秒遅延OK
 func tenantsBillingHandler(c echo.Context) error {
 	if host := c.Request().Host; host != getEnv("ISUCON_ADMIN_HOSTNAME", "admin.t.isucon.local") {
 		return echo.NewHTTPError(
@@ -1010,6 +1013,7 @@ type CompetitionsAddHandlerResult struct {
 // テナント管理者向けAPI
 // POST /api/organizer/competitions/add
 // 大会を追加する
+// TODO: 429 Too Many Requestsを返却可
 func competitionsAddHandler(c echo.Context) error {
 	ctx := context.Background()
 	v, err := parseViewer(c)
@@ -1275,6 +1279,8 @@ type BillingHandlerResult struct {
 // テナント管理者向けAPI
 // GET /api/organizer/billing
 // テナント内の課金レポートを取得する
+// TODO: 開催中の大会については0を返してよい
+// TODO: POST /finish から3秒遅延OK
 func billingHandler(c echo.Context) error {
 	ctx := context.Background()
 	v, err := parseViewer(c)
@@ -1650,6 +1656,7 @@ type CompetitionsHandlerResult struct {
 // 参加者向けAPI
 // GET /api/player/competitions
 // 大会の一覧を取得する
+// TODO: POST /disqualified から3秒遅延OK
 func playerCompetitionsHandler(c echo.Context) error {
 	ctx := context.Background()
 
