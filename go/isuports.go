@@ -638,9 +638,24 @@ type VisitHistorySummaryRow struct {
 func billingReportCompetitions(ctx context.Context, tenantDB dbOrTx, tenantID int64, comps []CompetitionRow) ([]BillingReport, error) {
 	tbrs := make([]BillingReport, 0, len(comps))
 	for _, comp := range comps {
-		report, err := billingReportByCompetition(ctx, tenantDB, tenantID, comp.ID)
-		if err != nil {
-			return nil, fmt.Errorf("error billingReportByCompetition: %w", err)
+		report := &BillingReport{}
+		// 開催中の大会 (comp.FinishedAtがnull) については0を返してよい. (正しい数値を返す必要もない)
+		if !comp.FinishedAt.Valid {
+			report = &BillingReport{
+				CompetitionID:     comp.ID,
+				CompetitionTitle:  comp.Title,
+				PlayerCount:       0,
+				VisitorCount:      0,
+				BillingPlayerYen:  0,
+				BillingVisitorYen: 0,
+				BillingYen:        0,
+			}
+		} else {
+			var err error
+			report, err = billingReportByCompetition(ctx, tenantDB, tenantID, comp.ID)
+			if err != nil {
+				return nil, fmt.Errorf("error billingReportByCompetition: %w", err)
+			}
 		}
 		tbrs = append(tbrs, *report)
 	}
@@ -1291,7 +1306,7 @@ type BillingHandlerResult struct {
 // テナント管理者向けAPI
 // GET /api/organizer/billing
 // テナント内の課金レポートを取得する
-// TODO: 開催中の大会については0を返してよい
+// 開催中の大会については0を返してよい (正しい数値を返す必要もない)
 // TODO: POST /finish から3秒遅延OK
 func billingHandler(c echo.Context) error {
 	ctx := context.Background()
