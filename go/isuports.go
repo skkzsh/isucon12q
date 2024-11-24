@@ -635,6 +635,18 @@ type VisitHistorySummaryRow struct {
 	MinCreatedAt int64  `db:"min_created_at"`
 }
 
+func billingReportCompetitions(ctx context.Context, tenantDB dbOrTx, tenantID int64, comps []CompetitionRow) ([]BillingReport, error) {
+	tbrs := make([]BillingReport, 0, len(comps))
+	for _, comp := range comps {
+		report, err := billingReportByCompetition(ctx, tenantDB, tenantID, comp.ID)
+		if err != nil {
+			return nil, fmt.Errorf("error billingReportByCompetition: %w", err)
+		}
+		tbrs = append(tbrs, *report)
+	}
+	return tbrs, nil
+}
+
 // 大会ごとの課金レポートを計算する
 // TODO: N+1
 func billingReportByCompetition(ctx context.Context, tenantDB dbOrTx, tenantID int64, competitonID string) (*BillingReport, error) {
@@ -1306,13 +1318,17 @@ func billingHandler(c echo.Context) error {
 	); err != nil {
 		return fmt.Errorf("error Select competition: %w", err)
 	}
-	tbrs := make([]BillingReport, 0, len(cs))
-	for _, comp := range cs {
-		report, err := billingReportByCompetition(ctx, tenantDB, v.tenantID, comp.ID)
-		if err != nil {
-			return fmt.Errorf("error billingReportByCompetition: %w", err)
-		}
-		tbrs = append(tbrs, *report)
+	// tbrs := make([]BillingReport, 0, len(cs))
+	// for _, comp := range cs {
+	// 	report, err := billingReportByCompetition(ctx, tenantDB, v.tenantID, comp.ID)
+	// 	if err != nil {
+	// 		return fmt.Errorf("error billingReportByCompetition: %w", err)
+	// 	}
+	// 	tbrs = append(tbrs, *report)
+	// }
+	tbrs, err := billingReportCompetitions(ctx, tenantDB, v.tenantID, cs)
+	if err != nil {
+		return fmt.Errorf("error billingReportByCompetition: %w", err)
 	}
 
 	res := SuccessResult{
