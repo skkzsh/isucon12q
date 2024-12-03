@@ -196,8 +196,8 @@ func Run() {
 	defer tracer.Stop()
 
 	e := echo.New()
-	e.Debug = true               // TODO
-	e.Logger.SetLevel(log.DEBUG) // TODO
+	// e.Debug = true               // off
+	// e.Logger.SetLevel(log.DEBUG) // off
 
 	var (
 		sqlLogger io.Closer
