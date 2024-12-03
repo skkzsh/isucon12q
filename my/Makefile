@@ -34,7 +34,8 @@ MYSQLD_CONF := /etc/mysql/mysql.conf.d/mysqld.cnf
 .PHONY: conf/backup conf/nginx/deploy conf/mysql/deploy rotate truncate build restart prepare bench/before bench bench/after alp slp issue
 
 all: bench bench/after
-bench/after: alp slp issue
+bench/after: alp issue
+# slp
 bench/before: prepare truncate restart # build
 
 conf/backup:
@@ -61,7 +62,8 @@ rotate:
 
 truncate:
 	sudo truncate -s0 -c $(NGINX_ACCESS_LOG).log $(NGINX_ERROR_LOG).log $(SLOW_QUERY_LOG).log $(MYSQL_ERROR_LOG).log
-    # mysqladmin flush-logs
+
+# mysqladmin flush-logs
 
 build:
 	cd $(APP_DIR) && $(BUILD_CMD)
@@ -74,6 +76,7 @@ restart:
 	while ! nc -z localhost 3000; do echo "Waiting for port..."; sleep 1; done
 	sudo systemctl restart nginx
 	redis-cli FLUSHALL
+
     # sudo systemctl restart redis # TODO
     # sudo systemctl restart datadog-agent
 
@@ -101,11 +104,12 @@ issue:
 	echo "\`\`\`"; cat ~/logs/bench-$(DATE).log; echo "\`\`\`"; \
 	echo "<details><summary>Bench error</summary>"; echo -e "\n\`\`\`"; cat ~/logs/bench-error-$(DATE).log; echo "\`\`\`"; echo "</details>"; \
 	echo "<details><summary>alp</summary>"; echo -e "\n\`\`\`"; cat ~/logs/alp-$(DATE).log; echo "\`\`\`";  echo "</details>"; \
-	echo "<details><summary>Slow query</summary>"; echo -e "\n\`\`\`"; cat ~/logs/pt-query-digest-$(DATE).log; echo "\`\`\`";  echo "</details>"; \
 	echo "<details><summary>NGINX error</summary>"; echo -e "\n\`\`\`"; sudo cat $(NGINX_ERROR_LOG).log; echo "\`\`\`"; echo "</details>"; \
 	echo "<details><summary>MySQL error</summary>"; echo -e "\n\`\`\`"; sudo cat $(MYSQL_ERROR_LOG).log; echo "\`\`\`";  echo "</details>"; \
 	echo "<details><summary>App error</summary>"; echo -e "\n\`\`\`"; cd $(GIT_DIR); docker compose -f docker-compose-go.yml logs --no-log-prefix | jq -R 'fromjson? | select(.level == "ERROR")' ; echo "\`\`\`"; echo "</details>"; \
 	) | \
 	gh issue comment $(ISSUE) -F-
+
+    # echo "<details><summary>Slow query</summary>"; echo -e "\n\`\`\`"; cat ~/logs/pt-query-digest-$(DATE).log; echo "\`\`\`";  echo "</details>"; \
     # echo "<details><summary>App error</summary>"; echo -e "\n\`\`\`"; sudo journalctl -u $(APP_NAME) --since "$$(systemctl show $(APP_NAME) -p ActiveEnterTimestamp | cut -d= -f2)" --no-pager -o json | jq -r .MESSAGE | jq -R 'fromjson? | select(.error != "")'; echo "\`\`\`"; echo "</details>"; \
     # echo "<details><summary>App error</summary>"; echo -e "\n\`\`\`"; sudo journalctl -u $(APP_NAME) --since "$$(systemctl show $(APP_NAME) -p ActiveEnterTimestamp | cut -d= -f2)" --no-pager -p err ; echo "\`\`\`"; echo "</details>"; \
