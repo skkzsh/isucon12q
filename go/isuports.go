@@ -1396,7 +1396,7 @@ func playerHandler(c echo.Context) error {
 
 	// cache
 	if val, err := rdb.Get(ctx, fmt.Sprintf("player_id:%s", playerID)).Result(); err == nil {
-		fmt.Println("Cache hit for player_id: ", playerID)
+		// fmt.Println("Cache hit for player_id: ", playerID)
 		var res SuccessResult
 		if err := json.Unmarshal([]byte(val), &res); err == nil {
 			return c.JSON(http.StatusOK, res)
@@ -1404,7 +1404,7 @@ func playerHandler(c echo.Context) error {
 			return fmt.Errorf("error json.Unmarshal: %w", err)
 		}
 	}
-	fmt.Println("Cache no hit for player_id: ", playerID)
+	// fmt.Println("Cache no hit for player_id: ", playerID)
 
 	p, err := retrievePlayer(ctx, tenantDB, playerID)
 	if err != nil {
@@ -1494,7 +1494,7 @@ func playerHandler(c echo.Context) error {
 	// cache
 	if j, err := json.Marshal(res); err == nil {
 		if err = rdb.Set(ctx, fmt.Sprintf("player_id:%s", playerID), j, 0).Err(); err == nil {
-			fmt.Println("Cache set for player_id: ", playerID)
+			// fmt.Println("Cache set for player_id: ", playerID)
 		} else {
 			return fmt.Errorf("error rdb.Set: %w", err)
 		}
@@ -1582,7 +1582,7 @@ func competitionRankingHandler(c echo.Context) error {
 		// rankAfterがないときだけcacheを使ってみる
 		// cache
 		if val, err := rdb.Get(ctx, fmt.Sprintf("competition_id:%s", competitionID)).Result(); err == nil {
-			fmt.Println("Cache hit for competition_id: ", competitionID)
+			// fmt.Println("Cache hit for competition_id: ", competitionID)
 			var res SuccessResult
 			if err := json.Unmarshal([]byte(val), &res); err == nil {
 				return c.JSON(http.StatusOK, res)
@@ -1590,7 +1590,7 @@ func competitionRankingHandler(c echo.Context) error {
 				return fmt.Errorf("error json.Unmarshal: %w", err)
 			}
 		}
-		fmt.Println("Cache no hit for competition_id: ", competitionID)
+		// fmt.Println("Cache no hit for competition_id: ", competitionID)
 	}
 
 	// player_scoreを読んでいるときに更新が走ると不整合が起こるのでロックを取得する
@@ -1668,7 +1668,7 @@ func competitionRankingHandler(c echo.Context) error {
 	if rankAfterStr == "" {
 		if j, err := json.Marshal(res); err == nil {
 			if err = rdb.Set(ctx, fmt.Sprintf("competition_id:%s", competitionID), j, 0).Err(); err == nil {
-				fmt.Println("Cache set for competition_id: ", competitionID)
+				// fmt.Println("Cache set for competition_id: ", competitionID)
 			} else {
 				return fmt.Errorf("error rdb.Set: %w", err)
 			}
