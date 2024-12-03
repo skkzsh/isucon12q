@@ -215,7 +215,7 @@ func Run() {
 	defer sqlLogger.Close()
 
 	e.Use(echotrace.Middleware(echotrace.WithServiceName(ServiceName)))
-	e.Use(middleware.Logger()) // TODO
+	// e.Use(middleware.Logger()) // TODO
 	e.Use(middleware.Recover())
 	e.Use(SetCacheControlPrivate)
 
