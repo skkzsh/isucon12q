@@ -8,13 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
-	"github.com/mattn/go-sqlite3"
 	"github.com/redis/go-redis/v9"
-	sqltrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/database/sql"
-	sqlxtrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/jmoiron/sqlx"
-	echotrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/labstack/echo.v4"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
-	"gopkg.in/DataDog/dd-trace-go.v1/profiler"
 	"io"
 	"net/http"
 	"os"
@@ -31,7 +25,6 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/labstack/gommon/log"
 	"github.com/lestrrat-go/jwx/v2/jwa"
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/lestrrat-go/jwx/v2/jwt"
@@ -82,9 +75,9 @@ func connectAdminDB() (*sqlx.DB, error) {
 	config.ParseTime = true
 	config.InterpolateParams = true // 追加
 	dsn := config.FormatDSN()
-	sqltrace.Register("mysql", &mysql.MySQLDriver{}, sqltrace.WithServiceName(ServiceName))
-	return sqlxtrace.Open("mysql", dsn)
-	// return sqlx.Open("mysql", dsn)
+	// sqltrace.Register("mysql", &mysql.MySQLDriver{}, sqltrace.WithServiceName(ServiceName))
+	// return sqlxtrace.Open("mysql", dsn)
+	return sqlx.Open("mysql", dsn)
 }
 
 // テナントDBのパスを返す
@@ -96,9 +89,9 @@ func tenantDBPath(id int64) string {
 // テナントDBに接続する
 func connectToTenantDB(id int64) (*sqlx.DB, error) {
 	p := tenantDBPath(id)
-	sqltrace.Register(sqliteDriverName, &sqlite3.SQLiteDriver{}, sqltrace.WithServiceName(ServiceName))
-	db, err := sqlxtrace.Open(sqliteDriverName, fmt.Sprintf("file:%s?mode=rw", p))
-	// db, err := sqlx.Open(sqliteDriverName, fmt.Sprintf("file:%s?mode=rw", p))
+	// sqltrace.Register(sqliteDriverName, &sqlite3.SQLiteDriver{}, sqltrace.WithServiceName(ServiceName))
+	// db, err := sqlxtrace.Open(sqliteDriverName, fmt.Sprintf("file:%s?mode=rw", p))
+	db, err := sqlx.Open(sqliteDriverName, fmt.Sprintf("file:%s?mode=rw", p))
 	if err != nil {
 		return nil, fmt.Errorf("failed to open tenant DB: %w", err)
 	}
@@ -166,34 +159,34 @@ func SetCacheControlPrivate(next echo.HandlerFunc) echo.HandlerFunc {
 func Run() {
 	var err error
 
-	err = profiler.Start(
-		profiler.WithService(ServiceName), // DD_SERVICE
-		profiler.WithEnv(DatadogEnv),      // DD_ENV
-		// profiler.WithVersion("<APPLICATION_VERSION>"), // DD_VERSION
-		// profiler.WithTags("<KEY1>:<VALUE1>", "<KEY2>:<VALUE2>"),
-		profiler.WithProfileTypes(
-			profiler.CPUProfile,
-			profiler.HeapProfile,
-			// The profiles below are disabled by default to keep overhead
-			// low, but can be enabled as needed.
+	// err = profiler.Start(
+	// 	profiler.WithService(ServiceName), // DD_SERVICE
+	// 	profiler.WithEnv(DatadogEnv),      // DD_ENV
+	// 	// profiler.WithVersion("<APPLICATION_VERSION>"), // DD_VERSION
+	// 	// profiler.WithTags("<KEY1>:<VALUE1>", "<KEY2>:<VALUE2>"),
+	// 	profiler.WithProfileTypes(
+	// 		profiler.CPUProfile,
+	// 		profiler.HeapProfile,
+	// 		// The profiles below are disabled by default to keep overhead
+	// 		// low, but can be enabled as needed.
 
-			// profiler.BlockProfile,
-			// profiler.MutexProfile,
-			// profiler.GoroutineProfile,
-		),
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer profiler.Stop()
+	// 		// profiler.BlockProfile,
+	// 		// profiler.MutexProfile,
+	// 		// profiler.GoroutineProfile,
+	// 	),
+	// )
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// defer profiler.Stop()
 
-	tracer.Start(
-		tracer.WithService(ServiceName), // DD_SERVICE
-		tracer.WithEnv(DatadogEnv),      // DD_ENV
-		// tracer.WithServiceVersion("abc123"), // DD_VERSION
-		// tracer.WithRuntimeMetrics(), // DD_RUNTIME_METRICS_ENABLED
-	)
-	defer tracer.Stop()
+	// tracer.Start(
+	// 	tracer.WithService(ServiceName), // DD_SERVICE
+	// 	tracer.WithEnv(DatadogEnv),      // DD_ENV
+	// 	// tracer.WithServiceVersion("abc123"), // DD_VERSION
+	// 	// tracer.WithRuntimeMetrics(), // DD_RUNTIME_METRICS_ENABLED
+	// )
+	// defer tracer.Stop()
 
 	e := echo.New()
 	// e.Debug = true               // off
@@ -214,7 +207,7 @@ func Run() {
 	}
 	defer sqlLogger.Close()
 
-	e.Use(echotrace.Middleware(echotrace.WithServiceName(ServiceName)))
+	// e.Use(echotrace.Middleware(echotrace.WithServiceName(ServiceName)))
 	// e.Use(middleware.Logger()) // TODO
 	e.Use(middleware.Recover())
 	e.Use(SetCacheControlPrivate)
